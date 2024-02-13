@@ -1,0 +1,53 @@
+ - to use open mp
+ 
+ #pragma omp directive [clause1, ...]{
+ }
+ 
+
+- to parallel section
+
+#pragma omp parallel {
+}
+
+
+ - paralellising loops
+ 
+ #pragma omp parallel 
+ {
+ 	#pragma omp for 
+ 	for (int - 0; i<N; i++){
+ 		console.log("test");
+ 	}
+ }
+ #pragma omp for
+ 
+ 
+ 	- one line of code to paralellise the for loop
+ 	- however this only works for the next for loop in the code, if there is another for loop after the other for loop with be sequential.
+
+ #pragma omp parallel for
+ 
+ 
+  - anything outside of the #pragma omp parallel for is shared, anything below that line of code is private
+  
+  
+  - default (shared)
+  - default (none)
+  
+  #pragma omp parallel for default(none) shared(sum) private(i)
+  
+  
+  -however the problem with this would mean data race:
+  multiple threads try to update the same variable at the same time
+  
+  	#pragma omp reduction(operator : list)
+  	
+  	hence
+
+	#pragma omp for reduction (+ : x)
+	
+	
+ - last private variables
+  #pragma om	
+  
+  
