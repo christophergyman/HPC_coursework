@@ -221,6 +221,7 @@ int main(){
   }
   fclose(finalfile);
 
+ 	/* print the time it took to compile*/
   clock_t end = clock();
   double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
   /*printf("%f", time_spent);*/
