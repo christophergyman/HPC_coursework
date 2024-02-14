@@ -25,22 +25,34 @@ Notes: The time step is calculated using the CFL condition
                       Main function
 **********************************************************************/
 
+float horizontal_wind_velocity(float z, float z0, float ustar){
+	if (z > z0){
+		return (ustar / 0.41) * log (z/z0);
+	}
+	return 0.0;
+}
+
+
+
 int main(){
   clock_t begin = clock();
+
+  /* friction velocity  */
+  const float friction_vel = 0.2;
 
   /* Grid properties */
   const int NX=1000;    // Number of x points
   const int NY=1000;    // Number of y points
   const float xmin=0.0; // Minimum x value
-  const float xmax=1.0; // Maximum x value
+  const float xmax=30.0; // Maximum x value
   const float ymin=0.0; // Minimum y value
-  const float ymax=1.0; // Maximum y value
+  const float ymax=30.0; // Maximum y value
   
   /* Parameters for the Gaussian initial conditions */
-  const float x0=0.1;                    // Centre(x)
-  const float y0=0.1;                    // Centre(y)
-  const float sigmax=0.03;               // Width(x)
-  const float sigmay=0.03;               // Width(y)
+  const float x0=3.0;                    // Centre(x)
+  const float y0=15.0;                    // Centre(y)
+  const float sigmax=1.0;               // Width(x)
+  const float sigmay=5.0;               // Width(y)
   const float sigmax2 = sigmax * sigmax; // Width(x) squared
   const float sigmay2 = sigmay * sigmay; // Width(y) squared
 
@@ -52,11 +64,11 @@ int main(){
   
   /* Time stepping parameters */
   const float CFL=0.9;   // CFL number 
-  const int nsteps=1500; // Number of time steps
+  const int nsteps=800; // Number of time steps
 
   /* Velocity */
-  const float velx=0.01; // Velocity in x direction
-  const float vely=0.01; // Velocity in y direction
+  float velx=1.0; // Velocity in x direction
+  const float vely=0.0; // Velocity in y direction
   
   /* Arrays to store variables. These have NX+2 elements
      to allow boundary values to be stored at both ends */
@@ -186,9 +198,10 @@ int main(){
     /*** Calculate rate of change of u using leftward difference ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 8 */
-	#pragma omp parallel for default(none) shared(NX, NY, dudt, velx, vely, u, dx, dy) 
+	#pragma omp parallel for default(none) shared(NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
+	velx = horizontal_wind_velocity(y[j], 1.0, friction_vel);
 	dudt[i][j] = -velx * (u[i][j] - u[i-1][j]) / dx
 	            - vely * (u[i][j] - u[i][j-1]) / dy;
       }
