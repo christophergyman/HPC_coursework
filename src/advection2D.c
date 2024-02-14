@@ -20,12 +20,13 @@ Notes: The time step is calculated using the CFL condition
 
 #include <stdio.h>
 #include <math.h>
-
+#include <time.h>
 /*********************************************************************
                       Main function
 **********************************************************************/
 
 int main(){
+  clock_t begin = clock();
 
   /* Grid properties */
   const int NX=1000;    // Number of x points
@@ -89,15 +90,20 @@ int main(){
   /* LOOP 1 */
 
   /* 
-  dev comment: very likeley that we can paralelize this
+  dev comment: we can paralelize this
 
    -- variables analysis  ----
   'i' is defined in loop so not needed
-  'NX' is an integer which is read (grid properties)
-  'x[i]' doesnt need as its only read 
-  'dx' calculates distance between points
+
+  'NX' is an integer which is read (already defined in grid properties)
+
+  'x[i]' the x array is read into,  by all of the threads in each for loop
+  so this will need to be shared amongst the threads
+
+  'dx' calculates distance between points but is only ever read from
+  not written from
   */
-  #pragma omp paralel for default(none) shared(x)
+  #pragma omp parallel for default(none) shared(x, NX, dx)
   for (int i=0; i<NX+2; i++){
     x[i] = ( (float) i - 0.5) * dx;
   }
@@ -106,12 +112,17 @@ int main(){
   /* 
   dev comment: very likeley that we can paralelize this single for loop
 
-   -- variables analysis  ----
+   -- variables analysis --
    we need to share the 'y[j]' array with everyone
   */
 
   /* LOOP 2 */
-  #pragma omp paralel for default(none) shared(y)
+  /* 
+  dev comment: comments are exactly the same as LOOP 1 except for using the 'y[j]' 
+  array instead of 'x[j]'
+  */
+
+  #pragma omp parallel for default(none) shared(y, NY, dy)
   for (int j=0; j<NY+2; j++){
     y[j] = ( (float) j - 0.5) * dy;
   }
@@ -120,7 +131,7 @@ int main(){
   /* LOOP 3 */
 
   /* 
-  dev comment:
+  dev comment: can be paralelised because there is no clear race condition
 
    -- variables analysis  ----
    'x2' 'y2' is temporary but used by all threads to calculate 'u[i][j]'
@@ -128,7 +139,7 @@ int main(){
 	share u[i][j]
 
   */
-  #pragma omp paralel for default(none) shared(u) private(x2, y2)
+  #pragma omp parallel for default(none) shared(u, NX, NY, x, y, sigmax2, sigmay2, x0, y0) private(x2, y2)
   for (int i=0; i<NX+2; i++){
     for (int j=0; j<NY+2; j++){
       x2      = (x[i]-x0) * (x[i]-x0);
@@ -153,11 +164,12 @@ int main(){
   
   /*** Update solution by looping over time steps ***/
   /* LOOP 5 */
+
   for (int m=0; m<nsteps; m++){
     
     /*** Apply boundary conditions at u[0][:] and u[NX+1][:] ***/
     /* LOOP 6 */
-	#pragma omp paralel for default(none) shared(u) 
+	#pragma omp parallel for default(none) shared(NY, NX, u, bval_left, bval_right)
     for (int j=0; j<NY+2; j++){
       u[0][j]    = bval_left;
       u[NX+1][j] = bval_right;
@@ -165,6 +177,7 @@ int main(){
 
     /*** Apply boundary conditions at u[:][0] and u[:][NY+1] ***/
     /* LOOP 7 */
+	#pragma omp parallel for default(none) shared(NY, NX, u, bval_lower, bval_upper)
     for (int i=0; i<NX+2; i++){
       u[i][0]    = bval_lower;
       u[i][NY+1] = bval_upper;
@@ -173,6 +186,7 @@ int main(){
     /*** Calculate rate of change of u using leftward difference ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 8 */
+	#pragma omp parallel for default(none) shared(NX, NY, dudt, velx, vely, u, dx, dy) 
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 	dudt[i][j] = -velx * (u[i][j] - u[i-1][j]) / dx
@@ -183,6 +197,7 @@ int main(){
     /*** Update u from t to t+dt ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 9 */
+	#pragma omp parallel for default(none) shared(NX, NY, u, dudt, dt)
     for	(int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 	u[i][j] = u[i][j] + dudt[i][j] * dt;
@@ -195,12 +210,22 @@ int main(){
   FILE *finalfile;
   finalfile = fopen("final.dat", "w");
   /* LOOP 10 */
+  /* 
+  you cannot paralelise this because the data has to be read
+  line by line (sequentially) in the file hence you cannot paralelise this
+  */
   for (int i=0; i<NX+2; i++){
     for (int j=0; j<NY+2; j++){
       fprintf(finalfile, "%g %g %g\n", x[i], y[j], u[i][j]);
     }
   }
   fclose(finalfile);
+
+  clock_t end = clock();
+  double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+  /*printf("%f", time_spent);*/
+  printf("Elapsed time: %.6f seconds\n", time_spent);
+
 
   return 0;
 }
