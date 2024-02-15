@@ -38,7 +38,7 @@ int main(){
   clock_t begin = clock();
 
   /* friction velocity  */
-  const float friction_vel = 0.2;
+  const float friction_vel = 0.12;
 
   /* Grid properties */
   const int NX=1000;    // Number of x points
@@ -195,6 +195,8 @@ int main(){
       u[i][NY+1] = bval_upper;
     }
     
+     FILE *finalfile;
+ 	 finalfile = fopen("final.dat", "w");
     /*** Calculate rate of change of u using leftward difference ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 8 */
@@ -202,6 +204,9 @@ int main(){
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 	velx = horizontal_wind_velocity(y[j], 1.0, friction_vel);
+	/*
+	printf("velx %f \n", velx);
+	*/
 	dudt[i][j] = -velx * (u[i][j] - u[i-1][j]) / dx
 	            - vely * (u[i][j] - u[i][j-1]) / dy;
       }
@@ -210,10 +215,15 @@ int main(){
     /*** Update u from t to t+dt ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 9 */
-	#pragma omp parallel for default(none) shared(NX, NY, u, dudt, dt)
-    for	(int i=1; i<NX+1; i++){
+	#pragma omp parallel for default(shared)
+	for	(int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
-	u[i][j] = u[i][j] + dudt[i][j] * dt;
+	    u[i][j] = u[i][j] + dudt[i][j] * dt;
+		/* 
+		if (isnan(u[i][j])){
+			u[i][j] = 1;
+		}
+		*/
       }
     }
     
