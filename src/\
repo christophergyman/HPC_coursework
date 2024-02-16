@@ -38,7 +38,7 @@ int main(){
   clock_t begin = clock();
 
   /* friction velocity  */
-  const float friction_vel = 0.12;
+  const float friction_vel = 0.2;
 
   /* Grid properties */
   const int NX=1000;    // Number of x points
@@ -203,11 +203,27 @@ int main(){
 	#pragma omp parallel for default(none) shared(NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
-			velx = horizontal_wind_velocity(y[j], 1.0, friction_vel);
-			dudt[i][j] = -velx * (u[i][j] - u[i-1][j]) / dx
-						- vely * (u[i][j] - u[i][j-1]) / dy;
+	velx = horizontal_wind_velocity(y[j], 1.0, friction_vel);
+	/*
+	printf("velx %f \n", velx);
+	*/
+	dudt[i][j] = -velx * (u[i][j] - u[i-1][j]) / dx
+	            - vely * (u[i][j] - u[i][j-1]) / dy;
       }
     }
+
+
+	/* calculate the highest velx value which would be last in dudt */
+	/* calculate the number of rows and cols, grab the last value  */
+
+    // Determine the number of rows
+    int numRows = sizeof(dudt) / sizeof(dudt[0]);
+    // Determine the length of each row (assuming all rows have the same length)
+    int numCols = sizeof(dudt[0]) / sizeof(dudt[0][0]);
+	printf(
+
+	float fastest_velx = horizontal_wind_velocity(dudt[])
+
     
     /*** Update u from t to t+dt ***/
     /* Loop over points in the domain but not boundary values */
@@ -216,11 +232,6 @@ int main(){
 	for	(int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 	    u[i][j] = u[i][j] + dudt[i][j] * dt;
-		/* 
-		if (isnan(u[i][j])){
-			u[i][j] = 1;
-		}
-		*/
       }
     }
     
@@ -252,4 +263,3 @@ int main(){
 }
 
 /* End of file ******************************************************/
-
