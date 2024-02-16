@@ -38,7 +38,7 @@ int main(){
   clock_t begin = clock();
 
   /* friction velocity  */
-  const float friction_vel = 0.12;
+  const float friction_vel = 0.2;
 
   /* Grid properties */
   const int NX=1000;    // Number of x points
@@ -85,18 +85,21 @@ int main(){
   float dy = (ymax-ymin) / ( (float) NY);
   
   /* Calculate time step using the CFL condition */
-  /* The fabs function gives the absolute value in case the velocity is -ve */
-  float dt = CFL / ( (fabs(velx) / dx) + (fabs(vely) / dy) );
+
+  /* highest_velx value */ 
+  float highest_velx = 0.0;
   
   /*** Report information about the calculation ***/
   printf("Grid spacing dx     = %g\n", dx);
   printf("Grid spacing dy     = %g\n", dy);
   printf("CFL number          = %g\n", CFL);
+  /*
   printf("Time step           = %g\n", dt);
   printf("No. of time steps   = %d\n", nsteps);
   printf("End time            = %g\n", dt*(float) nsteps);
   printf("Distance advected x = %g\n", velx*dt*(float) nsteps);
   printf("Distance advected y = %g\n", vely*dt*(float) nsteps);
+  */
 
   /*** Place x points in the middle of the cell ***/
   /* LOOP 1 */
@@ -200,14 +203,25 @@ int main(){
     /*** Calculate rate of change of u using leftward difference ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 8 */
-	#pragma omp parallel for default(none) shared(NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
+	#pragma omp parallel for default(none) shared(highest_velx, NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 			velx = horizontal_wind_velocity(y[j], 1.0, friction_vel);
 			dudt[i][j] = -velx * (u[i][j] - u[i-1][j]) / dx
 						- vely * (u[i][j] - u[i][j-1]) / dy;
+			if ((i==NX) && (j==NY)){
+				highest_velx = velx;
+			}
       }
     }
+
+	velx = highest_velx;
+    /* The fabs function gives the absolute value in case the velocity is -ve */
+    float dt = CFL / ( (fabs(velx) / dx) + (fabs(vely) / dy) );
+
+	/*
+	printf("velx: %f   highest_velx: %f \n", velx, highest_velx);
+	*/
     
     /*** Update u from t to t+dt ***/
     /* Loop over points in the domain but not boundary values */
