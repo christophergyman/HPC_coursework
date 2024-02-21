@@ -88,6 +88,9 @@ int main(){
 
   /* highest_velx value */ 
   float highest_velx = 0.0;
+
+  /* define the [u] average array */
+  float avg[NX];
   
   /*** Report information about the calculation ***/
   printf("Grid spacing dx     = %g\n", dx);
@@ -261,6 +264,23 @@ int main(){
   /*printf("%f", time_spent);*/
   printf("Elapsed time: %.6f seconds\n", time_spent);
 
+  /* TASK 4  */
+  for (int i = 0; i <= NX; i++){
+    float sum = 0;
+    for (int j = 0; j <= NX; j++){
+      sum += u[i][j];
+    }
+    avg[i] = sum / ymax;
+  }
+
+  /* print out the averages to a text document */
+  FILE *averagesFile;
+  averagesFile= fopen("average.dat", "w");
+
+  for (int i=0; i<NY; i++){
+    fprintf(averagesFile, "%g %g \n", avg[i], y[i]);
+  }
+  fclose(averagesFile);
 
   return 0;
 }
