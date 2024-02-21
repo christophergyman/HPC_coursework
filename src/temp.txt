@@ -1,8 +1,0 @@
-# int avg[NX];
-for (int i = 0; i <= NX; i++) {
-  int sum = 0;
-  for (int j = 0; j <= NY; j++) {
-      sum += u[i][j];
-  }
-  avg[i] = sum / max_y;
-}
