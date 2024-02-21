@@ -278,7 +278,7 @@ int main(){
   averagesFile= fopen("average.dat", "w");
 
   for (int i=0; i<NY; i++){
-    fprintf(averagesFile, "%g %g \n", avg[i], y[i]);
+    fprintf(averagesFile, "%g %g \n", y[i], avg[i]);
   }
   fclose(averagesFile);
 
