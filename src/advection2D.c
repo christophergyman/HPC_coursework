@@ -106,39 +106,15 @@ int main(){
 
   /*** Place x points in the middle of the cell ***/
   /* LOOP 1 */
-
-  /* 
-  dev comment: we can paralelize this
-
-   -- variables analysis  ----
-  'i' is defined in loop so not needed
-
-  'NX' is an integer which is read (already defined in grid properties)
-
-  'x[i]' the x array is read into,  by all of the threads in each for loop
-  so this will need to be shared amongst the threads
-
-  'dx' calculates distance between points but is only ever read from
-  not written from
-  */
+  /* We can paralelise this program sharing x, NX, dx */
   #pragma omp parallel for default(none) shared(x, NX, dx)
   for (int i=0; i<NX+2; i++){
     x[i] = ( (float) i - 0.5) * dx;
   }
 
   /*** Place y points in the middle of the cell ***/
-  /* 
-  dev comment: very likeley that we can paralelize this single for loop
-
-   -- variables analysis --
-   we need to share the 'y[j]' array with everyone
-  */
-
   /* LOOP 2 */
-  /* 
-  dev comment: comments are exactly the same as LOOP 1 except for using the 'y[j]' 
-  array instead of 'x[j]'
-  */
+  /* We can paralelise this aswell sharing y, NY, dy for each thread. */
 
   #pragma omp parallel for default(none) shared(y, NY, dy)
   for (int j=0; j<NY+2; j++){
@@ -187,6 +163,7 @@ int main(){
     
     /*** Apply boundary conditions at u[0][:] and u[NX+1][:] ***/
     /* LOOP 6 */
+    /* We can paralelise this */
 	#pragma omp parallel for default(none) shared(NY, NX, u, bval_left, bval_right)
     for (int j=0; j<NY+2; j++){
       u[0][j]    = bval_left;
@@ -195,6 +172,7 @@ int main(){
 
     /*** Apply boundary conditions at u[:][0] and u[:][NY+1] ***/
     /* LOOP 7 */
+    /* We can paralelise this */
 	#pragma omp parallel for default(none) shared(NY, NX, u, bval_lower, bval_upper)
     for (int i=0; i<NX+2; i++){
       u[i][0]    = bval_lower;
@@ -203,9 +181,15 @@ int main(){
     
      FILE *finalfile;
  	 finalfile = fopen("final.dat", "w");
+
     /*** Calculate rate of change of u using leftward difference ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 8 */
+    /*
+     Dev Comment, we can paralelise this but have to private the velx value as on each thread it has a unique velx value
+     Testing with collapse(2) in the total runtime it runs slower using collapse(2) on my machine hence I did not use it
+     for this nested loop.
+    */
 	#pragma omp parallel for default(none) shared(highest_velx, NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
@@ -218,6 +202,7 @@ int main(){
       }
     }
 
+    /* Update velx to the highest velx value before calculating DT */
 	velx = highest_velx;
     /* The fabs function gives the absolute value in case the velocity is -ve */
     float dt = CFL / ( (fabs(velx) / dx) + (fabs(vely) / dy) );
@@ -229,6 +214,11 @@ int main(){
     /*** Update u from t to t+dt ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 9 */
+    
+    /*
+     Testing with collapse(2) in the total runtime it runs slower using collapse(2) on my machine hence i did not use it
+     for this nested loop.
+    */
 	#pragma omp parallel for default(shared)
 	for	(int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
@@ -262,7 +252,7 @@ int main(){
   clock_t end = clock();
   double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
   /*printf("%f", time_spent);*/
-  printf("Elapsed time: %.6f seconds\n", time_spent);
+  /* printf("Elapsed time: %.6f seconds\n", time_spent); */
 
   /* TASK 4  */
   for (int i = 0; i <= NX; i++){
