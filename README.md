@@ -1,6 +1,12 @@
 # HPC_coursework
 This is my submission for my HPC coursework
 
+## Final images breakdown:
+1. 'initial.png' --> Initial advection2D.c without modifications
+2. 'modifyingCalc.png' --> After the initial values were changed 
+3. 'final.png' --> After the vertical sheer was added
+4. 'average.png' --> Task4 average advected distance compared to y values
+
 ## How to run with OpenMP?
 Go into the '/src' folder and run the following commands
 
