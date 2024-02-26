@@ -185,12 +185,7 @@ int main(){
     /*** Calculate rate of change of u using leftward difference ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 8 */
-    /*
-     Dev Comment, we can paralelise this but have to private the velx value as on each thread it has a unique velx value
-     Testing with collapse(2) in the total runtime it runs slower using collapse(2) on my machine hence I did not use it
-     for this nested loop.
-    */
-	#pragma omp parallel for default(none) shared(highest_velx, NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
+	#pragma omp parallel collapse(2) for default(none) shared(highest_velx, NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 			velx = horizontal_wind_velocity(y[j], 1.0, friction_vel);
@@ -214,12 +209,7 @@ int main(){
     /*** Update u from t to t+dt ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 9 */
-    
-    /*
-     Testing with collapse(2) in the total runtime it runs slower using collapse(2) on my machine hence i did not use it
-     for this nested loop.
-    */
-	#pragma omp parallel for default(shared)
+	#pragma omp parallel collapse(2) for default(shared)
 	for	(int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 	    u[i][j] = u[i][j] + dudt[i][j] * dt;
