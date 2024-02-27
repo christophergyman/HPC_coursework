@@ -247,10 +247,10 @@ int main(){
   /* TASK 4  */
   for (int i = 0; i <= NX; i++){
     float sum = 0;
-    for (int j = 0; j <= NX; j++){
+    for (int j = 0; j <= NY; j++){
       sum += u[i][j];
     }
-    avg[i] = sum / ymax;
+    avg[i] = sum / NY;
   }
 
   /* print out the averages to a text document */
