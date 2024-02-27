@@ -107,7 +107,7 @@ int main(){
   /*** Place x points in the middle of the cell ***/
   /* LOOP 1 */
   /* We can paralelise this program sharing x, NX, dx */
-  #pragma omp parallel for default(none) shared(x, NX, dx)
+  #pragma omp parallel for default(shared)
   for (int i=0; i<NX+2; i++){
     x[i] = ( (float) i - 0.5) * dx;
   }
@@ -116,7 +116,7 @@ int main(){
   /* LOOP 2 */
   /* We can paralelise this aswell sharing y, NY, dy for each thread. */
 
-  #pragma omp parallel for default(none) shared(y, NY, dy)
+  #pragma omp parallel for default(shared)
   for (int j=0; j<NY+2; j++){
     y[j] = ( (float) j - 0.5) * dy;
   }
@@ -133,7 +133,7 @@ int main(){
 	share u[i][j]
 
   */
-  #pragma omp parallel for default(none) shared(u, NX, NY, x, y, sigmax2, sigmay2, x0, y0) private(x2, y2)
+  #pragma omp parallel for default(shared) private(x2, y2)
   for (int i=0; i<NX+2; i++){
     for (int j=0; j<NY+2; j++){
       x2      = (x[i]-x0) * (x[i]-x0);
@@ -164,7 +164,7 @@ int main(){
     /*** Apply boundary conditions at u[0][:] and u[NX+1][:] ***/
     /* LOOP 6 */
     /* We can paralelise this */
-	#pragma omp parallel for default(none) shared(NY, NX, u, bval_left, bval_right)
+	#pragma omp parallel for default(shared)
     for (int j=0; j<NY+2; j++){
       u[0][j]    = bval_left;
       u[NX+1][j] = bval_right;
@@ -173,7 +173,7 @@ int main(){
     /*** Apply boundary conditions at u[:][0] and u[:][NY+1] ***/
     /* LOOP 7 */
     /* We can paralelise this */
-	#pragma omp parallel for default(none) shared(NY, NX, u, bval_lower, bval_upper)
+	#pragma omp parallel for default(shared) 
     for (int i=0; i<NX+2; i++){
       u[i][0]    = bval_lower;
       u[i][NY+1] = bval_upper;
@@ -185,7 +185,7 @@ int main(){
     /*** Calculate rate of change of u using leftward difference ***/
     /* Loop over points in the domain but not boundary values */
     /* LOOP 8 */
-	#pragma omp parallel for collapse(2) default(none) shared(highest_velx, NX, NY, dudt, y,  vely, u, dx, dy, friction_vel, y0) private(velx)
+	#pragma omp parallel for collapse(2) default(shared) private(velx)
     for (int i=1; i<NX+1; i++){
       for (int j=1; j<NY+1; j++){
 			velx = horizontal_wind_velocity(y[j], 1.0, friction_vel);
